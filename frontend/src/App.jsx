@@ -7,21 +7,28 @@ import Institution from "./components/Institution"
 function App() {
  
   const [user, setUser] = useState(null)
+  const [userType, setUserType] = useState(null)
+  const [publicAddress, setPublicAddress] = useState(null)
   const token = localStorage.getItem('token')
 
-  function getUser() {
+  async function getUser() {
     try {
-      const response = api.get('/user')
+      const response = await api.get('/user')
       const data = response.data
       console.log(data);
-      data && setUser({
-        email: data.email,
-        userType: data.user_type
-      })
-      localStorage.setItem('token',data.token)
+      data && setUser(data.email)
+      data && setUserType(data.user_type)
+      data && setPublicAddress(data.public_key)
     } catch (error) {
       console.log(error);
     }
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('token')
+    setUser(null)
+    setPublicAddress(null)
+    setUserType(null)
   }
 
   useEffect(() => {
@@ -30,16 +37,17 @@ function App() {
       getUser()
     } else {
       console.log('no token available');
-      
     }
-  },[user, token])
+  },[user, userType, token])
 
   return (
     <div>
-      {user
-        ? (user.userType === 'user' ? <User /> : user.userType === 'institution' && <Institution />) 
+      {(user && userType && publicAddress)
+        ? (userType === 'user' ? <User /> : userType === 'institution' && <Institution />) 
         :
-      <LoginPage />}
+        <LoginPage getUser={getUser} />}
+      
+      <b onClick={handleLogout}>Logout</b>
     </div>
   )
 }

@@ -1,63 +1,68 @@
 import React, { useState } from 'react';
+import api from '../api/api';
 
-const Institution = () => {
+function SendDocument() {
     const [email, setEmail] = useState('');
-    const [file, setFile] = useState(null);
+    const [document, setDocument] = useState(null);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!email || !document) {
+            alert('Please provide both email and document.');
+            return;
+        }
+
         const formData = new FormData();
         formData.append('email', email);
-        formData.append('document', file);
+        formData.append('userPublicKey', 'USER_PUBLIC_KEY'); // Replace with actual user's public key
+        formData.append('document', document);
 
         try {
-            const response = await fetch('/send-document', {
-                method: 'POST',
-                body: formData,
+            const response = await api.post('/send-document', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
             });
-
-            if (response.ok) {
-                alert('Document sent successfully!');
-            } else {
-                alert('Error sending document');
-            }
+            alert(response.data.message);
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error sending document:', error);
         }
     };
 
     return (
-        <div className="max-w-md mx-auto mt-10">
-            <h1 className="text-2xl font-bold mb-4">Upload Document</h1>
-            <form onSubmit={handleSubmit}>
-                <label className="block mb-2">
-                    Email:
-                    <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        className="mt-1 p-2 border rounded w-full"
-                    />
-                </label>
-                <label className="block mb-2">
-                    Document:
-                    <input
-                        type="file"
-                        onChange={(e) => setFile(e.target.files[0])}
-                        required
-                        className="mt-1 p-2 border rounded w-full"
-                    />
-                </label>
-                <button
-                    type="submit"
-                    className="mt-4 bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
-                >
-                    Submit
-                </button>
-            </form>
-        </div>
-    );
-};
+        <form onSubmit={handleSubmit} className="max-w-md mx-auto p-4 bg-white shadow-md rounded-lg">
+            <h2 className="text-xl font-semibold mb-4 text-center">Send Document</h2>
+            <div className="mb-4">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Recipient Email</label>
+                <input
+                    type="email"
+                    id="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Recipient Email"
+                    required
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-300"
+                />
+            </div>
+            <div className="mb-4">
+                <label htmlFor="document" className="block text-sm font-medium text-gray-700 mb-1">Document</label>
+                <input
+                    type="file"
+                    id="document"
+                    onChange={(e) => setDocument(e.target.files[0])}
+                    required
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-300"
+                />
+            </div>
+            <button
+                type="submit"
+                className="w-full bg-blue-500 text-white font-semibold py-2 rounded-md hover:bg-blue-600 transition duration-200"
+            >
+                Send Document
+            </button>
+        </form>
 
-export default Institution;
+    );
+}
+
+export default SendDocument;

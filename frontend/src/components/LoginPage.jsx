@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import api from '../api/api';
 
-function LoginPage() {
+function LoginPage({getUser}) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -16,19 +16,16 @@ function LoginPage() {
     if ((!isRegistering || password === confirmPassword) && email) {
       try {
         const data = { email, password, user_type: userType };
-        // Send OTP first
         if (isRegistering) {
-          // Register the user
           const registerResponse = await api.post('/register', data);
-          if (registerResponse.data.success) {
-            setStep(2);
-          }
+          console.log(registerResponse.data);
+          localStorage.setItem('token', registerResponse.data.token)
         } else {
-          // Log in the user
           const loginResponse = await api.post('/login', { email, password });
+          console.log(loginResponse.data); 
           localStorage.setItem('token', loginResponse.data.token);
-          alert('Login successful');
         }
+        getUser()
       } catch (error) {
         console.error('Error:', error);
       }
