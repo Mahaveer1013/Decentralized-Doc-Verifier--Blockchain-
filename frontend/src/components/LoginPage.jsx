@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import api from '../api/api';
+import img1 from '../assets/img1.avif';
 
 function LoginPage({getUser}) {
   const [email, setEmail] = useState('');
@@ -55,22 +56,23 @@ function LoginPage({getUser}) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex justify-center items-center">
-      <div className="bg-white p-8 rounded shadow-md w-full max-w-md">
+    <div className="min-h-screen bg-[url('../assets/img1.jpg')] bg-cover bg-center bg-no-repeat flex justify-center items-center"
+    style={{ backgroundImage: `url(${img1})` }}>
+      <div className="bg-white p-8 rounded shadow-md w-full max-w-md bg-opacity-20 backdrop-blur-sm py-12 border-2 border-white">
         {step === 1 ? (
           <>
-            <h2 className="text-2xl font-bold mb-6 text-center">{isRegistering ? 'Register' : 'Login'} as {userType ? (userType === 'user' ? 'Student' : 'Institution') : ''}</h2>
+            <h2 className="text-3xl font-extrabold mb-32 text-center">{isRegistering ? 'Register' : 'Login'} as {userType ? (userType === 'user' ? 'Student' : 'Institution') : ''}</h2>
             {!userType && (
-              <div className="flex justify-center mb-4">
+              <div className="flex justify-center mb-4 font-semibold">
                 <button
                   onClick={() => setUserType('user')}
-                  className={`w-1/2 py-2 text-white rounded-md ${userType === 'user' ? 'bg-blue-500' : 'bg-gray-300'}`}
+                  className={`w-1/2 py-2 mx-2 text-white rounded-md bg-blue-600 hover:bg-blue-500 border-2`}
                 >
                   Student
                 </button>
                 <button
                   onClick={() => setUserType('institution')}
-                  className={`w-1/2 py-2 text-white rounded-md ${userType === 'institution' ? 'bg-blue-500' : 'bg-gray-300'}`}
+                  className={`w-1/2 py-2 mx-2 text-white rounded-md bg-green-600 hover:bg-green-500 border-2`}
                 >
                   Institution
                 </button>
@@ -80,7 +82,7 @@ function LoginPage({getUser}) {
             {userType && (
               <form onSubmit={handleNextStep}>
                 <div className="mb-4">
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Email</label>
+                  <label className="block mb-2 text-sm text-black font-semibold">Email</label>
                   <input
                     type="email"
                     value={email}
@@ -90,7 +92,7 @@ function LoginPage({getUser}) {
                   />
                 </div>
                 <div className="mb-4">
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Password</label>
+                  <label className="block mb-2 text-sm text-gray-700 font-semibold">Password</label>
                   <input
                     type="password"
                     value={password}
@@ -101,7 +103,7 @@ function LoginPage({getUser}) {
                 </div>
                 {isRegistering && (
                   <div className="mb-4">
-                    <label className="block mb-2 text-sm font-medium text-gray-700">Confirm Password</label>
+                    <label className="block mb-2 text-sm font-semibold text-gray-700">Confirm Password</label>
                     <input
                       type="password"
                       value={confirmPassword}
@@ -114,7 +116,7 @@ function LoginPage({getUser}) {
                 <button type="submit" className="w-full py-2 bg-blue-500 text-white rounded-md">
                   {isRegistering ? 'Register' : 'Login'}
                 </button>
-                <button type="button" onClick={() => setIsRegistering(!isRegistering)} className="w-full py-2 mt-4 border border-gray-300 rounded-md">
+                <button type="button" onClick={() => setIsRegistering(!isRegistering)} className="w-full py-2 mt-4 border border-gray-300 rounded-md hover:bg-slate-100 font-bold">
                   {isRegistering ? 'Already have an account? Login' : 'Create an account'}
                 </button>
               </form>

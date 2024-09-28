@@ -46,7 +46,6 @@ function App() {
         ? (userType === 'user' ? <User /> : userType === 'institution' && <Institution />) 
         :
         <LoginPage getUser={getUser} />}
-      
       <b onClick={handleLogout}>Logout</b>
     </div>
   )
