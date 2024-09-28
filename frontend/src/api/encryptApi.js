@@ -3,7 +3,7 @@ import CryptoJS from 'crypto-js';
 import { backendUrl, secretKey } from '../constants';
 
 const encryptApi = axios.create({
-    baseURL: `${backendUrl}/api`,
+    baseURL: `${backendUrl}`,
 });
 
 const encryptValue = (value) => {
