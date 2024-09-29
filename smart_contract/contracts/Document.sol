@@ -13,25 +13,20 @@ contract DocumentStorage {
         uint256 createdAt;         
     }
 
-    // Mapping from user public key to User
     mapping(string => User) private users;
 
-    // Mapping from user public key to an array of documents
     mapping(string => Document[]) private userDocuments;
 
-    // Event emitted when a document is added
     event DocumentAdded(string userPublicKey, address issuer, string documentHash);
     
-    // Event emitted when a new user is added
     event UserAdded(string publicKey);
 
-    // Function to register a user
     function registerUser(string memory _publicKey) public {
         users[_publicKey] = User({
-            publicKey: msg.sender // Store the sender's address as publicKey
+            publicKey: msg.sender 
         });
 
-        emit UserAdded(_publicKey); // Emit the UserAdded event
+        emit UserAdded(_publicKey);
     }
 
     // Function to add a new document

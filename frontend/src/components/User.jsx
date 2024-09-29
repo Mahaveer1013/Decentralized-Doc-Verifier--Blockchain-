@@ -1,6 +1,12 @@
 import React from 'react';
 
 const User = () => {
+
+    async function getData() {
+        const data = await api.post('/get-my-documents')
+        console.log(data.data);
+    }
+    getData()
     const requests = [
         { id: 1, name: 'Request from Institution A' },
         { id: 2, name: 'Request from Institution B' },

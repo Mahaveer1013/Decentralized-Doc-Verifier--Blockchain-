@@ -13,9 +13,9 @@ import nodemailer from 'nodemailer';
 import bcrypt from 'bcrypt';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-// import { dec, inc, setNumber, getNumber } from './contracts/ContractConnection.js';
 import { FIREBASE_CONFIG } from './event-db-393fb-firebase-adminsdk-92cxv-f3862a5964.js';
 import admin from 'firebase-admin'
+import { addDocument, getDocuments, registerUser } from './contracts/ContractConnection.js';
 
 const app = express();
 
@@ -110,6 +110,12 @@ app.post('/register', async (req, res) => {
 
         const user = new UserModel({ email, password: hashedPassword, encrypted_private_key, public_key, user_type });
         await user.save();
+
+        // blockchain call
+
+        await registerUser(public_key)
+
+
 
         const token = createToken({
             email, public_key
@@ -233,18 +239,26 @@ async function encryptAndUploadFile(tmpPath, originalName, key, algo) {
     };
 }
 
-app.post('/send-document', upload.single('file'), async (req, res) => {
+app.post('/send-document', upload.single('file'),loginRequired, async (req, res) => {
     if (!req.file) {
+        console.log('wefrgtbnh');
+        
         return res.json({ status: "error", message: "Please upload a file." });
     }
 
     const user_email = req.body.email
     if (!user_email) {
+        console.log('cdvfbgnh');
+
         return res.status(404).json({message: 'User Not found'})
     }
 
-    const user = await UserModel.findOne({ email });
+    const user = await UserModel.findOne({ email: req.user.email });
+    if (!user) {
+        console.log('fergtb');
 
+        return res.status(404).json({message: 'User Not Found'})
+    }
     const tmpPath = req.file.path;
     const fname = req.file.originalname;
     const key = user.public_key; // Ensure this is securely managed
@@ -254,13 +268,47 @@ app.post('/send-document', upload.single('file'), async (req, res) => {
         return res.json({ status: "error", message: "Encryption key is required." });
     }
 
+    const selfUser = await UserModel.findOne({email: req.user.email})
+
     const algo = req.body.ealgo || 'aes-256-cbc';
 
     try {
         const result = await encryptAndUploadFile(tmpPath, fname, key, algo);
 
-        console.log(result, '\n\n\n');
+        // const data = new Docum({ user_public_key: key, issuer_public_key: selfUser.public_key, document_hash: result.fileHash, encrypted_document: result.targetPath });
+        // await data.save()
+
+
+        //blockchain call
+        await addDocument(key, selfUser.public_key, result.fileHash, result.targetPath) 
         
+        
+        return res.json({data: 'success'});
+    } catch (error) {
+        return res.json(error);
+    }
+});
+
+app.post('/get-my-documents', async (req, res) => {
+
+    // const email = req.user.email
+    // if (!email) {
+    //     return res.status(404).json({message: 'User Not found'})
+    // }
+
+    const user = await UserModel.findOne({ email: 'a@gmail.com' });
+    if (!user) {
+        return res.status(404).json({message: 'User Not Found'})
+    }
+    const key = user.public_key; // Ensure this is securely managed
+
+    if (!key) {
+        return res.json({ status: "error", message: "Encryption key is required." });
+    }
+
+    try {
+        const result = await getDocuments(key);
+        console.log(result);
         return res.json(result);
     } catch (error) {
         return res.json(error);
