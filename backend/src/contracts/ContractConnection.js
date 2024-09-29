@@ -1,41 +1,70 @@
 import { ethers } from 'ethers';
-import SimpleStorage from '../abi/SimpleStorage.json'
-import { getUser } from '../controllers/user';
-import { decryptPrivateKey } from '../controllers/functions';
-import { deployedContract } from '../constants';
+import { deployedContract, privateKey } from '../utils/constants.js';
 
-const user = getUser()
-
-const privateKey = decryptPrivateKey(user.encrypted_private_key)
 
 const provider = new ethers.providers.JsonRpcProvider('http://localhost:7545');
 
 const wallet = new ethers.Wallet(privateKey, provider);
 
 const contractABI = [
-    SimpleStorage.abi
+    "event NumberChanged(uint256 newNumber)",
+    "function setNumber(uint256 _number) public",
+    "function getNumber() public view returns (uint256)",
+    "function increment() public",
+    "function decrement() public"
 ];
+
 const contractAddress = deployedContract; // Replace with your deployed contract address
 
 const contract = new ethers.Contract(contractAddress, contractABI, wallet);
 
-async function main() {
+export async function setNumber(number) {
     try {
-        // // Example: Call a function from your smart contract
-        // const tx = await contract.issueCertificate("doc_12345", "encrypted_value", "0xRecipientAddress");
-        // console.log("Transaction hash:", tx.hash);
+        // Example: Call a function from your smart contract
+        const tx = await contract.setNumber(number);
+        console.log("Transaction hash:", tx.hash);
         
-        // // Wait for the transaction to be mined
-        // await tx.wait();
-        // console.log("Transaction confirmed!");
-        
-        // // You can also read from your contract
-        // const result = await contract.verifyCertificate("doc_12345", "encrypted_value");
-        // console.log("Verification result:", result);
-        
+        // Wait for the transaction to be mined
+        await tx.wait();
+        console.log("Transaction confirmed!");
+
     } catch (error) {
         console.error("Error:", error);
     }
 }
 
-main();
+export async function getNumber() {
+    try {
+        const result = await contract.getNumber();
+        console.log("Verification result:", result.toString());
+    } catch (error) {
+        console.error("Error calling getNumber:", error);
+    }
+}
+
+export async function inc() {
+    try {
+        const tx = await contract.increment();
+        console.log("Transaction hash:", tx.hash);
+
+        await tx.wait();
+        console.log("Transaction confirmed!");
+
+    } catch (error) {
+        console.error("Error:", error);
+    }
+}
+
+export async function dec() {
+    try {
+        const tx = await contract.decrement();
+        console.log("Transaction hash:", tx.hash);
+
+        await tx.wait();
+        console.log("Transaction confirmed!");
+
+    } catch (error) {
+        console.error("Error:", error);
+    }
+}
+

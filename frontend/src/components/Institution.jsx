@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import api from '../api/api';
+import axios from 'axios';
 
 function SendDocument() {
     const [email, setEmail] = useState('');
@@ -15,15 +16,16 @@ function SendDocument() {
         const formData = new FormData();
         formData.append('email', email);
         formData.append('userPublicKey', 'USER_PUBLIC_KEY'); // Replace with actual user's public key
-        formData.append('document', document);
+        formData.append('file', document);
 
         try {
             const response = await api.post('/send-document', formData, {
                 headers: {
+                    // 'Authorization': `Bearer ${localStorage.getItem('token')}`,
                     'Content-Type': 'multipart/form-data',
                 },
             });
-            alert(response.data.message);
+            console.log(response.data);
         } catch (error) {
             console.error('Error sending document:', error);
         }

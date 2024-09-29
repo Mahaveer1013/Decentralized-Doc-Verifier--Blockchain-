@@ -1,21 +1,25 @@
 import express from 'express';
 import { Wallet } from 'ethers';
-import { mongoUri, Port, senderEmail, senderEmailPassword } from './constants.js';
+import { mongoUri, Port, senderEmail, senderEmailPassword } from './utils/constants.js';
 import UserModel from './models/user.model.js';
-import { createToken, encryptPrivateKey, generateOtp, hashDocument, encryptDocument } from './controllers/functions.js';
+import { createToken, encryptPrivateKey, generateOtp, hashDocument, encryptDocument } from './utils/functions.js';
 import { loginRequired } from './middleware/middleware.js';
 import mongoose from 'mongoose';
-import DocumentModel from './models/document.model.js';
+import crypto from 'crypto'
 import fs from 'fs';
-import path from 'path';
+import multer from 'multer'
 import cors from 'cors';
-import multer from 'multer';
-import nodemailer from 'nodemailer'; // Import nodemailer for sending emails
+import nodemailer from 'nodemailer';
 import bcrypt from 'bcrypt';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+// import { dec, inc, setNumber, getNumber } from './contracts/ContractConnection.js';
+import { FIREBASE_CONFIG } from './event-db-393fb-firebase-adminsdk-92cxv-f3862a5964.js';
+import admin from 'firebase-admin'
 
 const app = express();
+
+// getPrivateKey()
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -24,7 +28,12 @@ app.use(express.json());
 app.use(cors({ origin: true }));
 app.use(express.static(join(__dirname, 'public')));
 
-const upload = multer({ dest: 'public/uploads/' }); // Temporary storage for uploaded files
+const upload = multer({ dest: 'uploads/' }); // Temporary storage for uploaded files
+
+admin.initializeApp({
+    credential: admin.credential.cert(FIREBASE_CONFIG),
+    storageBucket: "event-db-393fb.appspot.com" // Replace with your bucket name
+});
 
 const transporter = nodemailer.createTransport({
     service: 'gmail', // Example service
@@ -33,6 +42,26 @@ const transporter = nodemailer.createTransport({
         pass: senderEmailPassword, // Your email password
     },
 });
+
+app.get('/dec', (req, res) => {
+    dec()
+    res.send('done');
+})
+
+app.get('/get', (req, res) => {
+    getNumber()
+    res.send('done');
+})
+
+app.get('/set', (req, res) => {
+    setNumber(1)
+    res.send('done');
+})
+
+app.get('/inc', (req, res) => {
+    inc()
+    res.send('done');
+})
 
 app.get('/user', loginRequired, (req, res) => {
     res.status(200).json(req.user)
@@ -151,87 +180,92 @@ app.post('/verify-otp', async (req, res) => {
     }
 });
 
-app.post('/send-document', upload.single('document'), loginRequired, async (req, res) => {
-    const { email } = req.body;
-    const documentFile = req.file;
+function getFileHash(filePath) {
+    return new Promise((resolve, reject) => {
+        const hash = crypto.createHash('sha256'); // You can change the algorithm if needed
+        const stream = fs.createReadStream(filePath);
 
-    console.log(documentFile);
+        stream.on('data', (data) => {
+            hash.update(data);
+        });
 
-    if (!documentFile) {
-        return res.status(400).json({ message: 'No document uploaded' });
+        stream.on('end', () => {
+            resolve(hash.digest('hex'));
+        });
+
+        stream.on('error', (err) => {
+            reject(err);
+        });
+    });
+}
+
+async function encryptAndUploadFile(tmpPath, originalName, key, algo) {
+    const fileHash = await getFileHash(tmpPath);
+    const cipher = crypto.createCipher(algo, key);
+    const fileBuffer = fs.readFileSync(tmpPath); // Read file into memory
+
+    // Encrypt the file buffer
+    const encryptedBuffer = Buffer.concat([
+        cipher.update(fileBuffer),
+        cipher.final()
+    ]);
+
+    const bucket = admin.storage().bucket();
+    const targetPath = `uploads/${originalName}.enc`;
+
+    // Upload the encrypted file buffer to Firebase Storage
+    const file = bucket.file(targetPath);
+    await file.save(encryptedBuffer, {
+        metadata: {
+            contentType: 'application/octet-stream', // Change as necessary
+            cacheControl: 'no-cache'
+        }
+    });
+
+    // Clean up temporary file
+    fs.unlinkSync(tmpPath);
+
+    return {
+        status: "success",
+        message: "File uploaded and encrypted successfully",
+        fileHash: fileHash,
+        targetPath: targetPath
+    };
+}
+
+app.post('/send-document', upload.single('file'), async (req, res) => {
+    if (!req.file) {
+        return res.json({ status: "error", message: "Please upload a file." });
+    }
+
+    const user_email = req.body.email
+    if (!user_email) {
+        return res.status(404).json({message: 'User Not found'})
     }
 
     const user = await UserModel.findOne({ email });
-    if (!user) {
-        return res.status(404).json({ message: 'User Not found' });
+
+    const tmpPath = req.file.path;
+    const fname = req.file.originalname;
+    const key = user.public_key; // Ensure this is securely managed
+
+    if (!key) {
+        fs.unlinkSync(tmpPath);
+        return res.json({ status: "error", message: "Encryption key is required." });
     }
+
+    const algo = req.body.ealgo || 'aes-256-cbc';
 
     try {
-        // Construct the document path using the temp upload path
-        const documentPath = path.join(__dirname, documentFile.path);
+        const result = await encryptAndUploadFile(tmpPath, fname, key, algo);
 
-        // Read the document as a buffer
-        const documentBuffer = fs.readFileSync(documentPath);
+        console.log(result, '\n\n\n');
         
-        // Hash the document for integrity
-        const document_hash = await hashDocument(documentBuffer);
-        
-        // Encrypt the document using the user's public key
-        const encrypted_document = encryptDocument(documentBuffer, user.public_key);
-        
-        // Create a new document entry in the database
-        const newDocument = new DocumentModel({
-            user_public_key: user.public_key,
-            issuer_public_key: req.user.public_key,
-            document_hash,
-            encrypted_document,
-        });
-
-        await newDocument.save();
-
-        // Set up Nodemailer transporter
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: senderEmail, // Your email
-                pass: senderEmailPassword // Your email password or app-specific password
-            }
-        });
-
-        // Email options
-        const mailOptions = {
-            from: senderEmail,
-            to: email,
-            subject: 'Document Sent',
-            text: 'You have received a document.',
-            attachments: [
-                {
-                    filename: documentFile.originalname, // Original name of the uploaded file
-                    content: encrypted_document // This should be a Buffer or a readable stream
-                }
-            ]
-        };
-
-        // Send the email with the encrypted document
-        transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-                console.error('Error sending email:', error);
-                return res.status(500).json({ message: 'Error sending email', error });
-            }
-            console.log('Email sent:', info.response);
-        });
-
-        // Optionally, delete the file after processing
-        fs.unlinkSync(documentPath);
-
-        res.status(201).json({ message: 'Document sent successfully', document: newDocument });
+        return res.json(result);
     } catch (error) {
-        console.error('Error sending document:', error);
-        res.status(500).json({ message: 'Error sending document', error });
+        return res.json(error);
     }
 });
-
-
 
 mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => {

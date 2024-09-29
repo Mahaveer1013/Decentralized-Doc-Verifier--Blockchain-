@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 contract SimpleStorage {
-    uint256 private storedNumber;
+    uint256 private storedNumber = 5;
 
     event NumberChanged(uint256 newNumber);
 

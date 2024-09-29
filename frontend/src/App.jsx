@@ -48,6 +48,7 @@ function App() {
         <LoginPage getUser={getUser} />}
       
       <b onClick={handleLogout}>Logout</b>
+
     </div>
   )
 }

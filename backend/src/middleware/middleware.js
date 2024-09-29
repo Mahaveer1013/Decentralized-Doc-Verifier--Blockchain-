@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { jwtSecret } from '../constants.js';
+import { jwtSecret } from '../utils/constants.js';
 import UserModel from '../models/user.model.js';
 
 
@@ -13,7 +13,7 @@ export const loginRequired = async (req, res, next) => {
   try {
     const decodedData = jwt.verify(token, jwtSecret);
     const user = await UserModel.findOne({ email: decodedData.email })
-    
+
     if (!user.email || !user.user_type || !user.public_key) {
       return res.status(404).json({ message: 'Some Requiremnets Not Found' })
     }
